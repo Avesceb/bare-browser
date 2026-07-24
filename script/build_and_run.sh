@@ -383,6 +383,7 @@ sign_app() {
   echo "warning: no valid code-signing identity found and local signing identity creation failed; using ad-hoc signing. Keychain Always Allow may not persist across rebuilt app binaries." >&2
 }
 
+/usr/bin/xattr -cr "$APP_BUNDLE"
 sign_app
 build_stamp_value >"$BUILD_STAMP"
 
