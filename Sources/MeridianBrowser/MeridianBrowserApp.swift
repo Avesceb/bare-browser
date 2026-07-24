@@ -90,7 +90,6 @@ struct MeridianBrowserApp: App {
                 Button("Close Tab") {
                     store.closeSelectedTab()
                 }
-                .keyboardShortcut("w", modifiers: [.command])
 
                 Divider()
 

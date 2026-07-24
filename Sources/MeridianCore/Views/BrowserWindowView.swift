@@ -87,7 +87,8 @@ public struct BrowserWindowView: View {
             .background(WindowChromeController())
             .background(
                 BrowserKeyboardShortcutMonitor(
-                    beginNewTab: { store.beginNewTab() }
+                    beginNewTab: { store.beginNewTab() },
+                    closeSelectedTab: { store.closeSelectedTab() }
                 )
             )
             .background(
@@ -1648,15 +1649,18 @@ private struct CommandBarFloatingLayer: View {
 
 private struct BrowserKeyboardShortcutMonitor: NSViewRepresentable {
     let beginNewTab: @MainActor () -> Void
+    let closeSelectedTab: @MainActor () -> Void
 
     func makeNSView(context: Context) -> BrowserKeyboardShortcutMonitorNSView {
         let nsView = BrowserKeyboardShortcutMonitorNSView()
         nsView.beginNewTab = beginNewTab
+        nsView.closeSelectedTab = closeSelectedTab
         return nsView
     }
 
     func updateNSView(_ nsView: BrowserKeyboardShortcutMonitorNSView, context: Context) {
         nsView.beginNewTab = beginNewTab
+        nsView.closeSelectedTab = closeSelectedTab
         nsView.installEventMonitorIfNeeded()
     }
 
@@ -1667,6 +1671,7 @@ private struct BrowserKeyboardShortcutMonitor: NSViewRepresentable {
 
 private final class BrowserKeyboardShortcutMonitorNSView: NSView {
     var beginNewTab: (@MainActor () -> Void)?
+    var closeSelectedTab: (@MainActor () -> Void)?
     private var eventMonitor: Any?
 
     override func viewDidMoveToWindow() {
@@ -1687,16 +1692,25 @@ private final class BrowserKeyboardShortcutMonitorNSView: NSView {
         }
 
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard let self,
-                  event.window === self.window,
-                  event.isCommandT else {
+            guard let self, event.window === self.window else {
                 return event
             }
 
-            Task { @MainActor in
-                self.beginNewTab?()
+            if event.isCommandT {
+                Task { @MainActor in
+                    self.beginNewTab?()
+                }
+                return nil
             }
-            return nil
+
+            if event.isCommandW {
+                Task { @MainActor in
+                    self.closeSelectedTab?()
+                }
+                return nil
+            }
+
+            return event
         }
     }
 
@@ -1830,6 +1844,14 @@ private final class CommandBarEscapeKeyMonitorNSView: NSView {
 private extension NSEvent {
     var isCommandT: Bool {
         charactersIgnoringModifiers?.lowercased() == "t"
+            && modifierFlags.contains(.command)
+            && !modifierFlags.contains(.shift)
+            && !modifierFlags.contains(.option)
+            && !modifierFlags.contains(.control)
+    }
+
+    var isCommandW: Bool {
+        charactersIgnoringModifiers?.lowercased() == "w"
             && modifierFlags.contains(.command)
             && !modifierFlags.contains(.shift)
             && !modifierFlags.contains(.option)
