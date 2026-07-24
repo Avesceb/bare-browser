@@ -9,6 +9,31 @@ private let webViewLogger = Logger(
     category: "WebView"
 )
 
+private enum BrowserPictureInPictureScript {
+    static let source = """
+    (() => {
+        const disablePictureInPicture = node => {
+            if (node instanceof HTMLVideoElement) {
+                node.disablePictureInPicture = true;
+                node.setAttribute("disablepictureinpicture", "");
+            }
+        };
+
+        document.querySelectorAll("video").forEach(disablePictureInPicture);
+        new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node instanceof Element) {
+                        disablePictureInPicture(node);
+                        node.querySelectorAll("video").forEach(disablePictureInPicture);
+                    }
+                });
+            });
+        }).observe(document.documentElement, { childList: true, subtree: true });
+    })();
+    """
+}
+
 private enum BrowserContextMenuScript {
     static let messageHandlerName = "meridianContextMenuTarget"
     @MainActor static var contentWorld: WKContentWorld {
@@ -1304,6 +1329,12 @@ public final class BrowserWebViewRegistry: ObservableObject {
         configuration.websiteDataStore = dataStoreProvider.websiteDataStore(for: profile)
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.userContentController.addUserScript(WKUserScript(
+            source: BrowserPictureInPictureScript.source,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false,
+            in: WKContentWorld.defaultClient
+        ))
         if sitePermissionPolicy.requiresUserActionForAutoplay {
             configuration.mediaTypesRequiringUserActionForPlayback = .all
         }

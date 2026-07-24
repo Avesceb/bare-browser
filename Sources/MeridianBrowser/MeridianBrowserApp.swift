@@ -46,6 +46,10 @@ struct MeridianBrowserApp: App {
         WindowGroup("Lumen Browser") {
             BrowserWindowView(store: store)
                 .frame(minWidth: 900, minHeight: 620)
+                .handlesExternalEvents(preferring: ["*"], allowing: ["*"])
+                .onOpenURL { url in
+                    store.open(url)
+                }
                 .onChange(of: scenePhase) { _, phase in
                     if phase != .active {
                         store.flushScheduledSessionPersistence()
