@@ -232,7 +232,14 @@ identity_in_keychain() {
   security list-keychains -d user -s "$keychain" "${original_keychains[@]}" >/dev/null 2>&1
   existing_identity="$(
     security find-identity -p codesigning -v 2>/dev/null \
-      | awk -F '"' -v name="$identity_name" '$2 == name { print $2; exit }'
+      | awk -F '"' -v name="$identity_name" '
+          $2 == name {
+            sub(/^[[:space:]]*[0-9]+\)[[:space:]]*/, "", $1)
+            sub(/[[:space:]]+$/, "", $1)
+            print $1
+            exit
+          }
+        '
   )"
   restore_keychain_search_list "${original_keychains[@]}" >/dev/null 2>&1
   if [[ "$saved_errexit" -eq 1 ]]; then
@@ -357,7 +364,7 @@ sign_app() {
   if [[ -z "$identity" ]]; then
     identity="$(
       security find-identity -p codesigning -v 2>/dev/null \
-        | awk -F '"' '/"[^"]+"/ { print $2; exit }'
+        | awk '/^[[:space:]]*[0-9]+\)/ { print $2; exit }'
     )"
   fi
 
