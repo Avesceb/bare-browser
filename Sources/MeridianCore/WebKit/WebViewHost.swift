@@ -1328,6 +1328,9 @@ public final class BrowserWebViewRegistry: ObservableObject {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = dataStoreProvider.websiteDataStore(for: profile)
         configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
+        // WebKit keeps the HTML Fullscreen API disabled by default on macOS.
+        // Sites such as YouTube use that API for their player fullscreen button.
+        configuration.preferences.isElementFullscreenEnabled = true
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.userContentController.addUserScript(WKUserScript(
             source: BrowserPictureInPictureScript.source,

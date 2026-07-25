@@ -2834,7 +2834,7 @@ private struct WindowTrafficLightGroup: View {
                 systemName: "plus",
                 help: "Full Screen"
             ) {
-                window?.toggleFullScreen(nil)
+                (window ?? NSApp.keyWindow ?? NSApp.mainWindow)?.toggleFullScreen(nil)
             }
         }
     }
